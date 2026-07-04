@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Smart Parcel Locker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080e17;--surface:#0d1520;--surface2:#111c2d;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --accent:#3b82f6;--accent2:#6366f1;--green:#10b981;
+  --red:#f43f5e;--amber:#f59e0b;
+  --text:#e2e8f0;--text2:#64748b;--text3:#334155;
+  --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  color:var(--text);padding:32px 16px 64px;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%,rgba(59,130,246,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 110%,rgba(99,102,241,.05) 0%,transparent 60%);
+}
+
+/* ── Header ── */
+.header{text-align:center;margin-bottom:24px;animation:fadeDown .5s ease}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.eyebrow span{width:22px;height:1px;background:var(--accent);opacity:.4}
+.header h1{font-size:1.75rem;font-weight:700;letter-spacing:-.5px}
+.header p{color:var(--text2);font-size:.83rem;margin-top:5px}
+
+/* ── IP Bar ── */
+.ip-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:10px 14px;
+  width:100%;max-width:920px;margin-bottom:12px;animation:fadeDown .6s ease;
+}
+.ip-bar label{font-size:.7rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1.2px;white-space:nowrap;font-family:var(--mono)}
+.ip-bar input{
+  flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);padding:8px 12px;font-size:.83rem;
+  font-family:var(--mono);outline:none;transition:border .2s;
+}
+.ip-bar input:focus{border-color:var(--accent)}
+.ip-bar input::placeholder{color:var(--text3)}
+.btn-primary{
+  padding:8px 18px;border:none;border-radius:8px;cursor:pointer;
+  background:var(--accent);color:#fff;font-weight:600;font-size:.82rem;
+  font-family:inherit;transition:all .2s;white-space:nowrap;
+}
+.btn-primary:hover{background:#2563eb;transform:translateY(-1px)}
+.btn-primary.purple{background:var(--accent2)}
+.btn-primary.purple:hover{background:#4f46e5}
+
+/* ── Conn badge ── */
+.conn-bar{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:99px;padding:5px 14px 5px 10px;
+  font-size:.75rem;color:var(--text2);margin-bottom:24px;
+  animation:fadeDown .65s ease;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:all .4s;flex-shrink:0}
+.dot.online{background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
+.dot.offline{background:var(--red);box-shadow:0 0 0 3px rgba(244,63,94,.2)}
+
+/* ── Main layout ── */
+.main-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;width:100%;max-width:920px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;animation:fadeUp .55s ease;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card-title{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);margin-bottom:20px}
+
+/* ── Lock card ── */
+.lock-wrap{display:flex;justify-content:center;margin-bottom:18px}
+.lock-bg{width:76px;height:76px;border-radius:18px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .4s}
+.lock-bg.unlocked{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25)}
+.sbadge{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 14px;border-radius:8px;font-size:.82rem;font-weight:600;margin-bottom:16px;font-family:var(--mono);letter-spacing:.5px;transition:all .4s}
+.sbadge.locked{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);color:#fda4af}
+.sbadge.unlocked{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:#6ee7b7}
+.btn-row{display:flex;gap:10px}
+.btn{flex:1;padding:10px 8px;border:1px solid var(--border);border-radius:10px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;background:var(--surface2);color:var(--text)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-lock:hover:not(:disabled){background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.3);color:#fda4af}
+.btn-unlock:hover:not(:disabled){background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#6ee7b7}
+
+/* ── Parcel card ── */
+.p-ring-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.p-ring{width:76px;height:76px;border-radius:18px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .5s}
+.p-ring.present{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25);box-shadow:0 0 22px rgba(16,185,129,.1);animation:glow 2.5s ease-in-out infinite}
+.p-label{text-align:center;font-size:1rem;font-weight:600;margin-bottom:4px;transition:color .4s}
+.p-label.present{color:#6ee7b7}.p-label.absent{color:var(--text2)}
+.p-sub{text-align:center;font-size:.78rem;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.divider{height:1px;background:var(--border);margin:0 -22px 16px}
+.ir-bar{display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.75rem;color:var(--text2);font-family:var(--mono)}
+.ir-led{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .4s;background:var(--text3)}
+.ir-led.on{background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
+
+/* ── Full-width cards ── */
+.wide-card{width:100%;max-width:920px;animation:fadeUp .6s ease}
+
+/* ── Camera Live Feed Section ── */
+.camera-section{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:22px;margin-top:16px;
+}
+.cam-feed-wrap{
+  position:relative;width:100%;background:#000;
+  border-radius:12px;overflow:hidden;border:1px solid var(--border);
+  min-height:260px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+}
+.cam-feed-wrap img{width:100%;height:auto;display:block;max-height:480px;object-fit:contain;border-radius:12px}
+.cam-placeholder{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  color:var(--text3);font-size:.82rem;padding:60px 20px;text-align:center;width:100%;
+}
+.cam-placeholder svg{opacity:.3}
+.cam-badge{
+  position:absolute;top:10px;right:10px;
+  background:rgba(0,0,0,.7);border:1px solid var(--border);
+  border-radius:6px;padding:4px 10px;font-size:.7rem;color:var(--green);
+  font-family:var(--mono);display:none;backdrop-filter:blur(4px);
+}
+.cam-badge.show{display:block}
+.cam-controls{display:flex;gap:10px;flex-wrap:wrap}
+.btn-sec{
+  padding:8px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;
+  background:var(--surface2);color:var(--text);font-weight:600;font-size:.8rem;
+  font-family:inherit;transition:all .2s;
+}
+.btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Parcel Snapshot Section ── */
+.snapshot-section{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:22px;margin-top:16px;
+}
+.snap-inner{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  align-items:start;
+}
+@media(max-width:540px){.snap-inner{grid-template-columns:1fr}}
+.snap-frame{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;aspect-ratio:4/3;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.snap-frame img{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px}
+.snap-status-overlay{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;
+  color:var(--text3);font-size:.78rem;text-align:center;
+  padding:20px;width:100%;height:100%;
+}
+.snap-status-overlay svg{opacity:.25;margin-bottom:4px}
+.snap-meta{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+.snap-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;padding:5px 10px;font-size:.72rem;
+  color:var(--text2);font-family:var(--mono);
+}
+.snap-tag.detected{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2);color:#6ee7b7}
+.snap-tag.waiting{background:rgba(59,130,246,.06);border-color:rgba(59,130,246,.15);color:#93c5fd}
+.snap-tag .led{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.snap-time{font-size:.7rem;color:var(--text3);font-family:var(--mono);margin-top:4px}
+.snap-info-text{font-size:.82rem;color:var(--text2);line-height:1.6}
+.snap-info-text strong{color:var(--text);font-weight:600}
+.snap-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.snap-hist-title{font-size:.68rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text2);margin:18px 0 12px}
+.hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}
+.hist-item{
+  position:relative;border:1px solid var(--border);border-radius:9px;
+  overflow:hidden;aspect-ratio:1;cursor:pointer;transition:all .25s;
+  background:var(--surface2);
+}
+.hist-item:hover{border-color:var(--accent);transform:scale(1.06);box-shadow:0 4px 14px rgba(59,130,246,.2)}
+.hist-item img{width:100%;height:100%;object-fit:cover;display:block}
+.hist-time{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(to top,rgba(0,0,0,.85),transparent);
+  color:var(--text);font-size:.6rem;padding:6px 5px 4px;
+  font-family:var(--mono);
+}
+
+/* ── Activity Log ── */
+.log-list{list-style:none;display:flex;flex-direction:column;gap:3px;max-height:160px;overflow-y:auto}
+.log-list::-webkit-scrollbar{width:3px}
+.log-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.log-item{display:flex;align-items:center;gap:9px;font-size:.75rem;color:var(--text2);padding:6px 9px;border-radius:7px;border-left:2px solid transparent;transition:background .2s}
+.log-item:hover{background:var(--surface2)}
+.log-item.lk{border-left-color:var(--red)}.log-item.ul{border-left-color:var(--green)}
+.log-item.pk{border-left-color:var(--accent2)}.log-item.info{border-left-color:var(--accent)}
+.log-time{color:var(--text3);font-size:.68rem;white-space:nowrap;min-width:50px;font-family:var(--mono)}
+
+/* ── Refresh bar ── */
+.rbar{max-width:920px;width:100%;margin-top:12px;display:flex;align-items:center;font-size:.7rem;color:var(--text3);font-family:var(--mono)}
+.rtrack{height:1px;background:var(--border);border-radius:2px;overflow:hidden;flex:1;margin:0 12px}
+.rfill{height:100%;background:var(--accent);width:0%}
+.rfill.running{animation:rfill 2s linear infinite}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 20px;font-size:.8rem;color:var(--text);
+  opacity:0;transition:all .3s;pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:99;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:rgba(16,185,129,.35);color:#6ee7b7}
+.toast.error{border-color:rgba(244,63,94,.35);color:#fda4af}
+
+/* ── Animations ── */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 22px rgba(16,185,129,.1)}50%{box-shadow:0 0 30px rgba(16,185,129,.22)}}
+@keyframes rfill{from{width:0%}to{width:100%}}
+@keyframes pulse-border{0%,100%{border-color:rgba(16,185,129,.25)}50%{border-color:rgba(16,185,129,.6)}}
+@media(max-width:480px){.header h1{font-size:1.4rem}.card,.camera-section,.snapshot-section{padding:16px}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="eyebrow"><span></span>IoT Control Panel<span></span></div>
+  <h1>Smart Parcel Locker</h1>
+  <p>ESP32 Wireless Lock &amp; Parcel Detection</p>
+</div>
+
+<!-- ESP32 IP -->
+<div class="ip-bar">
+  <label>ESP32&nbsp;IP</label>
+  <input type="text" id="espIP" placeholder="192.168.1.45" value=""/>
+  <button class="btn-primary" onclick="connect()">Connect</button>
+</div>
+
+<!-- Camera IP -->
+<div class="ip-bar">
+  <label>Camera&nbsp;IP</label>
+  <input type="text" id="cameraIP" placeholder="http://192.168.1.100:8080" value=""/>
+  <button class="btn-primary" onclick="saveCameraIP()">Save &amp; Connect</button>
+  <button class="btn-primary purple" onclick="testCameraEndpoints()">Test Endpoints</button>
+</div>
+
+<!-- Connection status -->
+<div class="conn-bar">
+  <div class="dot" id="cDot"></div>
+  <span id="cTxt">Enter ESP32 IP above and click Connect</span>
+</div>
+
+<!-- Lock + Parcel cards -->
+<div class="main-grid">
+
+  <!-- Lock Control -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Lock Control
+    </div>
+    <div class="lock-wrap">
+      <div class="lock-bg" id="lockBg">
+        <svg id="lockSvg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" fill="rgba(59,130,246,.1)" stroke="#3b82f6"/>
+          <path id="shackle" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          <circle cx="12" cy="16" r="1.4" fill="#3b82f6" stroke="none"/>
+        </svg>
+      </div>
+    </div>
+    <div class="sbadge locked" id="sBadge">
+      <span id="sTxt">LOCKED</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-lock" id="bLock" onclick="cmd('lock')" disabled>🔒 Lock</button>
+      <button class="btn btn-unlock" id="bUnlock" onclick="cmd('unlock')" disabled>🔓 Unlock</button>
+    </div>
+  </div>
+
+  <!-- Parcel Detection -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Parcel Detection
+    </div>
+    <div class="p-ring-wrap">
+      <div class="p-ring absent" id="pRing">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="parcelIcon">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </div>
+    </div>
+    <div class="p-label absent" id="pLabel">No Parcel</div>
+    <div class="p-sub" id="pSub">Connect to ESP32 first...</div>
+    <div class="divider"></div>
+    <div class="ir-bar">
+      <div class="ir-led" id="irLed"></div>
+      <span>IR — <span id="irTxt">Awaiting connection</span></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     LIVE CAMERA FEED
+═══════════════════════════════════════════════════ -->
+<div class="wide-card">
+  <div class="camera-section">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Live Camera Feed
+    </div>
+    <div class="cam-feed-wrap" id="camFeedWrap">
+      <div class="cam-placeholder" id="camPlaceholder">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span id="camStatusTxt">Enter camera IP above and click Save &amp; Connect</span>
+      </div>
+      <div class="cam-badge" id="camBadge">● LIVE</div>
+    </div>
+    <div class="cam-controls">
+      <button class="btn-sec" onclick="manualRefreshCamera()">🔄 Refresh</button>
+      <button class="btn-sec" onclick="captureNow()">📸 Capture Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     PARCEL SNAPSHOT SECTION
+═══════════════════════════════════════════════════ -->
+<div class="wide-card">
+  <div class="snapshot-section">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Parcel Snapshot
+    </div>
+
+    <div class="snap-inner">
+      <!-- Left: snapshot image frame -->
+      <div class="snap-frame" id="snapFrame">
+        <div class="snap-status-overlay" id="snapOverlay">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <span id="snapOverlayTxt">Waiting for parcel...</span>
+        </div>
+      </div>
+
+      <!-- Right: status info -->
+      <div class="snap-meta">
+        <div class="snap-tag waiting" id="snapStatusTag">
+          <span class="led"></span>
+          <span id="snapStatusTxt">No parcel detected</span>
+        </div>
+        <div class="snap-time" id="snapTime">Last capture: —</div>
+        <div class="snap-info-text" id="snapInfoText">
+          When a parcel is detected by the IR sensor, the camera will <strong>automatically capture</strong> a photo and display it here.
+        </div>
+        <div class="snap-btn-row">
+          <button class="btn-sec" onclick="captureNow()" id="btnManualCapture">📸 Manual Capture</button>
+          <button class="btn-sec" onclick="clearSnapshot()" id="btnClearSnap">🗑 Clear</button>
+          <button class="btn-sec" onclick="downloadSnapshot()" id="btnDownload" style="display:none">⬇ Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capture history -->
+    <div id="histSection" style="display:none">
+      <div class="snap-hist-title">Capture History</div>
+      <div class="hist-grid" id="histGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Log -->
+<div class="wide-card">
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Activity Log
+    </div>
+    <ul class="log-list" id="logList">
+      <li class="log-item info"><span class="log-time">--:--:--</span><span>Dashboard ready — enter IP and connect</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Refresh bar -->
+<div class="rbar">
+  <span>Polling 2s</span>
+  <div class="rtrack"><div class="rfill" id="rfill"></div></div>
+  <span id="lastUp">--</span>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+var espIP = '';
+var cameraURL = '';
+var polling = null;
+var cameraRefreshTimer = null;
+var prevLocked = null;
+var prevParcel = null;
+var online = false;
+var captureHistory = [];
+var currentSnapSrc = null;
+var autoCaptureTriggered = false;
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function pad(n){ return String(n).padStart(2,'0'); }
+function nowStr(){
+  var d = new Date();
+  return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+}
+function dateStr(){
+  var d = new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function log(msg, cls){
+  var ul = document.getElementById('logList');
+  var li = document.createElement('li');
+  li.className = 'log-item '+(cls||'');
+  li.innerHTML = '<span class="log-time">'+nowStr()+'</span><span>'+msg+'</span>';
+  ul.insertBefore(li, ul.firstChild);
+  if(ul.children.length > 40) ul.removeChild(ul.lastChild);
+}
+function toast(msg, type){
+  var t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.className = 'toast show '+(type||'');
+  clearTimeout(t._t);
+  t._t = setTimeout(function(){ t.className='toast'; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════
+// UI — LOCK
+// ═══════════════════════════════════════════════════
+function lockUI(locked){
+  var badge = document.getElementById('sBadge');
+  var bg = document.getElementById('lockBg');
+  var sk = document.getElementById('shackle');
+  var svg = document.getElementById('lockSvg');
+  badge.className = 'sbadge '+(locked?'locked':'unlocked');
+  bg.className = 'lock-bg'+(locked?'':' unlocked');
+  document.getElementById('sTxt').textContent = locked ? 'LOCKED' : 'UNLOCKED';
+  var col = locked ? '#3b82f6' : '#10b981';
+  svg.setAttribute('stroke', col);
+  sk.setAttribute('stroke', col);
+  sk.setAttribute('d', locked ? 'M7 11V7a5 5 0 0 1 10 0v4' : 'M7 11V5a5 5 0 0 1 9.9-1');
+}
+
+// ═══════════════════════════════════════════════════
+// UI — PARCEL
+// ═══════════════════════════════════════════════════
+function parcelUI(p){
+  document.getElementById('pRing').className = 'p-ring '+(p?'present':'absent');
+  document.getElementById('parcelIcon').setAttribute('stroke', p?'#10b981':'#64748b');
+  var lb = document.getElementById('pLabel');
+  lb.className = 'p-label '+(p?'present':'absent');
+  lb.textContent = p ? 'Parcel Detected' : 'No Parcel';
+  document.getElementById('pSub').textContent = p ? 'Package inside — please collect' : 'Waiting for delivery...';
+  document.getElementById('irLed').className = 'ir-led '+(p?'on':'off');
+  document.getElementById('irTxt').textContent = p ? 'Object detected' : 'Beam clear';
+}
+
+// ═══════════════════════════════════════════════════
+// UI — CONNECTION
+// ═══════════════════════════════════════════════════
+function setConnected(yes){
+  online = yes;
+  document.getElementById('cDot').className = 'dot '+(yes?'online':'offline');
+  document.getElementById('cTxt').textContent = yes ? ('Connected — '+espIP) : 'Connection lost — retrying...';
+  document.getElementById('bLock').disabled = !yes;
+  document.getElementById('bUnlock').disabled = !yes;
+  var rf = document.getElementById('rfill');
+  if(rf) rf.className = yes ? 'rfill running' : 'rfill';
+}
+
+// ═══════════════════════════════════════════════════
+// CAMERA — SETUP
+// ═══════════════════════════════════════════════════
+function saveCameraIP(){
+  var raw = document.getElementById('cameraIP').value.trim();
+  if(!raw){ toast('Enter camera URL', 'error'); return; }
+  if(!raw.startsWith('http')) raw = 'http://'+raw;
+  cameraURL = raw.replace(/\/+$/,'');
+  localStorage.setItem('cameraURL', cameraURL);
+  log('Camera configured: '+cameraURL, 'info');
+  toast('Camera URL saved — loading stream...', 'success');
+  startCameraStream();
+}
+
+function testCameraEndpoints(){
+  if(!cameraURL){ toast('Set camera IP first', 'error'); return; }
+  var endpoints = ['/shot.jpg','/snap.jpg','/photo.jpg','/video.jpg','/capture.jpg'];
+  var found = false;
+  log('Testing camera endpoints...', 'info');
+  endpoints.forEach(function(ep, i){
+    setTimeout(function(){
+      if(found) return;
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function(){
+        found = true;
+        log('Working endpoint: '+ep, 'info');
+        toast('Found: '+ep, 'success');
+      };
+      img.onerror = function(){
+        if(i === endpoints.length-1 && !found){
+          log('No working endpoint found', '');
+          toast('No endpoint found — check IP', 'error');
+        }
+      };
+      img.src = cameraURL+ep+'?t='+Date.now();
+    }, i*400);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// CAMERA — LIVE STREAM
+// ═══════════════════════════════════════════════════
+function startCameraStream(){
+  if(cameraRefreshTimer) clearInterval(cameraRefreshTimer);
+  doRefreshCamera();
+  cameraRefreshTimer = setInterval(doRefreshCamera, 1200);
+}
+
+function doRefreshCamera(){
+  if(!cameraURL) return;
+  var wrap = document.getElementById('camFeedWrap');
+  var ph = document.getElementById('camPlaceholder');
+  var badge = document.getElementById('camBadge');
+  var url = cameraURL+'/shot.jpg?t='+Date.now();
+
+  var img = new Image();
+  img.style.cssText = 'width:100%;height:auto;max-height:480px;object-fit:contain;display:block;border-radius:10px;';
+  img.onload = function(){
+    // Remove old img if exists, keep placeholder hidden
+    var old = wrap.querySelector('img.live-img');
+    if(old) old.remove();
+    img.className = 'live-img';
+    wrap.insertBefore(img, ph);
+    ph.style.display = 'none';
+    badge.className = 'cam-badge show';
+    document.getElementById('camStatusTxt').textContent = '';
+  };
+  img.onerror = function(){
+    var old = wrap.querySelector('img.live-img');
+    if(old) old.remove();
+    ph.style.display = 'flex';
+    badge.className = 'cam-badge';
+    document.getElementById('camStatusTxt').textContent = '⚠️ Cannot reach camera: '+cameraURL;
+  };
+  img.crossOrigin = 'anonymous';
+  img.src = url;
+}
+
+function manualRefreshCamera(){
+  if(!cameraURL){ toast('Set camera IP first', 'error'); return; }
+  doRefreshCamera();
+}
+
+// ═══════════════════════════════════════════════════
+// CAPTURE — SNAPSHOT
+// ═══════════════════════════════════════════════════
+function captureNow(){
+  if(!cameraURL){ toast('Set camera IP first', 'error'); return; }
+  var url = cameraURL+'/shot.jpg?t='+Date.now();
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function(){
+    var canvas = document.createElement('canvas');
+    canvas.width = img.width || 640;
+    canvas.height = img.height || 480;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    try {
+      var dataURL = canvas.toDataURL('image/jpeg', 0.9);
+      saveSnapshot(dataURL, prevParcel);
+    } catch(e){
+      toast('CORS error — canvas blocked. Try same-network capture.', 'error');
+      log('Capture failed (CORS): '+e.message, '');
+    }
+  };
+  img.onerror = function(){
+    toast('Cannot reach camera for capture', 'error');
+    log('Capture failed — camera unreachable', '');
+  };
+  img.src = url;
+}
+
+function saveSnapshot(dataURL, parcelPresent){
+  currentSnapSrc = dataURL;
+  var ts = nowStr();
+  var entry = { src: dataURL, time: ts, date: dateStr(), parcel: parcelPresent };
+
+  // Update main snapshot frame
+  var frame = document.getElementById('snapFrame');
+  var overlay = document.getElementById('snapOverlay');
+  overlay.style.display = 'none';
+
+  var old = frame.querySelector('img.snap-img');
+  if(old) old.remove();
+  var snapImg = document.createElement('img');
+  snapImg.className = 'snap-img';
+  snapImg.src = dataURL;
+  snapImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;';
+  frame.appendChild(snapImg);
+
+  // Update status tags
+  var tag = document.getElementById('snapStatusTag');
+  var stxt = document.getElementById('snapStatusTxt');
+  if(parcelPresent){
+    tag.className = 'snap-tag detected';
+    stxt.textContent = 'Parcel detected';
+  } else {
+    tag.className = 'snap-tag waiting';
+    stxt.textContent = 'No parcel at capture';
+  }
+  document.getElementById('snapTime').textContent = 'Last capture: '+ts;
+  document.getElementById('snapInfoText').innerHTML = 'Photo captured at <strong>'+ts+'</strong> on <strong>'+dateStr()+'</strong>. Parcel: <strong>'+(parcelPresent?'YES — Present':'NO — Not present')+'</strong>';
+  document.getElementById('btnDownload').style.display = 'inline-flex';
+
+  // Add to history
+  captureHistory.unshift(entry);
+  if(captureHistory.length > 12) captureHistory.pop();
+  try { localStorage.setItem('captureHistory', JSON.stringify(captureHistory)); } catch(e){}
+  renderHistory();
+
+  log('📸 Snapshot saved — parcel: '+(parcelPresent?'YES':'NO'), 'pk');
+  toast('📸 Snapshot captured', 'success');
+
+  // Notifications
+  if(parcelPresent && Notification && Notification.permission === 'granted'){
+    new Notification('📦 Parcel Arrived!', { body: 'Photo captured at '+ts, icon: '/icon.svg' });
+  }
+}
+
+function clearSnapshot(){
+  currentSnapSrc = null;
+  var frame = document.getElementById('snapFrame');
+  var old = frame.querySelector('img.snap-img');
+  if(old) old.remove();
+  document.getElementById('snapOverlay').style.display = 'flex';
+  document.getElementById('snapOverlayTxt').textContent = 'Waiting for parcel...';
+  document.getElementById('snapStatusTag').className = 'snap-tag waiting';
+  document.getElementById('snapStatusTxt').textContent = 'No parcel detected';
+  document.getElementById('snapTime').textContent = 'Last capture: —';
+  document.getElementById('snapInfoText').innerHTML = 'When a parcel is detected by the IR sensor, the camera will <strong>automatically capture</strong> a photo and display it here.';
+  document.getElementById('btnDownload').style.display = 'none';
+  toast('Snapshot cleared', 'success');
+}
+
+function downloadSnapshot(){
+  if(!currentSnapSrc){ toast('No snapshot to download', 'error'); return; }
+  var a = document.createElement('a');
+  a.href = currentSnapSrc;
+  a.download = 'parcel_'+dateStr()+'_'+nowStr().replace(/:/g,'-')+'.jpg';
+  a.click();
+}
+
+function renderHistory(){
+  var grid = document.getElementById('histGrid');
+  var sect = document.getElementById('histSection');
+  if(captureHistory.length === 0){ sect.style.display='none'; return; }
+  sect.style.display = 'block';
+  grid.innerHTML = '';
+  captureHistory.forEach(function(item, idx){
+    var div = document.createElement('div');
+    div.className = 'hist-item';
+    var img = document.createElement('img');
+    img.src = item.src;
+    img.alt = 'Capture '+idx;
+    var t = document.createElement('div');
+    t.className = 'hist-time';
+    t.textContent = item.time;
+    div.appendChild(img);
+    div.appendChild(t);
+    div.onclick = function(){
+      currentSnapSrc = item.src;
+      var frame = document.getElementById('snapFrame');
+      var old = frame.querySelector('img.snap-img');
+      if(old) old.remove();
+      document.getElementById('snapOverlay').style.display = 'none';
+      var si = document.createElement('img');
+      si.className = 'snap-img';
+      si.src = item.src;
+      si.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;';
+      frame.appendChild(si);
+      document.getElementById('snapTime').textContent = 'Viewing: '+item.time;
+      document.getElementById('btnDownload').style.display = 'inline-flex';
+    };
+    grid.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ESP32 — CONNECT & POLL
+// ═══════════════════════════════════════════════════
+function connect(){
+  var raw = document.getElementById('espIP').value.trim();
+  if(!raw){ toast('Enter ESP32 IP first', 'error'); return; }
+  if(!raw.startsWith('http')) raw = 'http://'+raw;
+  espIP = raw.replace(/\/+$/,'');
+  localStorage.setItem('espIP', espIP);
+  document.getElementById('cTxt').textContent = 'Connecting to '+espIP+'...';
+  document.getElementById('cDot').className = 'dot';
+  log('Connecting to '+espIP, 'info');
+  if(Notification && Notification.permission === 'default') Notification.requestPermission();
+  if(polling) clearInterval(polling);
+  prevLocked = null; prevParcel = null;
+  poll();
+  polling = setInterval(poll, 2000);
+}
+
+function poll(){
+  if(!espIP) return;
+  fetch(espIP+'/status', { signal: AbortSignal.timeout(3500) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!online){
+        setConnected(true);
+        log('Connected to ESP32 at '+espIP, 'info');
+        toast('Connected!', 'success');
+      }
+
+      // Lock state change
+      if(prevLocked !== null && d.locked !== prevLocked)
+        log('Door '+(d.locked?'LOCKED':'UNLOCKED'), d.locked?'lk':'ul');
+
+      // Parcel state change
+      if(prevParcel !== null && d.parcel !== prevParcel){
+        if(d.parcel){
+          log('📦 Parcel placed in locker — auto-capturing...', 'pk');
+          toast('📦 Package arrived! Capturing photo...', 'success');
+          // Auto-capture on parcel arrival
+          if(cameraURL){
+            setTimeout(function(){ captureNow(); }, 600);
+          } else {
+            // No camera — show waiting overlay with parcel present state
+            document.getElementById('snapOverlayTxt').textContent = 'Parcel detected — set camera to capture';
+            document.getElementById('snapStatusTag').className = 'snap-tag detected';
+            document.getElementById('snapStatusTxt').textContent = 'Parcel detected';
+          }
+        } else {
+          log('Parcel removed from locker', 'pk');
+          toast('⚠️ Parcel removed!', 'error');
+          // Show "no parcel" default state on snapshot panel
+          showNoParcelDefault();
+        }
+      }
+
+      lockUI(d.locked);
+      parcelUI(d.parcel);
+      prevLocked = d.locked;
+      prevParcel = d.parcel;
+      document.getElementById('lastUp').textContent = 'Updated '+nowStr();
+    })
+    .catch(function(){
+      if(online){ toast('Connection lost', 'error'); }
+      setConnected(false);
+    });
+}
+
+function showNoParcelDefault(){
+  // If current snap shows parcel, update status tag but keep image
+  var tag = document.getElementById('snapStatusTag');
+  var stxt = document.getElementById('snapStatusTxt');
+  tag.className = 'snap-tag waiting';
+  stxt.textContent = 'Parcel removed — waiting for next delivery';
+  document.getElementById('snapTime').textContent = 'Last parcel removed: '+nowStr();
+  // If no previous image, show waiting overlay
+  if(!currentSnapSrc){
+    document.getElementById('snapOverlayTxt').textContent = 'Waiting for next delivery...';
+  }
+}
+
+function cmd(c){
+  if(!espIP){ toast('Not connected', 'error'); return; }
+  fetch(espIP+'/'+c, { signal: AbortSignal.timeout(3500) })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      log('Manual: '+c.toUpperCase(), c==='lock'?'lk':'ul');
+      toast(c==='lock'?'🔒 Locked':'🔓 Unlocked', 'success');
+      lockUI(d.locked);
+      prevLocked = d.locked;
+    })
+    .catch(function(){
+      toast('Command failed — check connection', 'error');
+    });
+}
+
+// ═══════════════════════════════════════════════════
+// INIT — restore from localStorage
+// ═══════════════════════════════════════════════════
+(function init(){
+  var savedESP = localStorage.getItem('espIP');
+  if(savedESP){
+    document.getElementById('espIP').value = savedESP.replace('http://','');
+  }
+
+  var savedCam = localStorage.getItem('cameraURL');
+  if(savedCam){
+    cameraURL = savedCam;
+    document.getElementById('cameraIP').value = cameraURL;
+    log('Auto-loading camera: '+cameraURL, 'info');
+    setTimeout(startCameraStream, 600);
+  }
+
+  var savedHist = localStorage.getItem('captureHistory');
+  if(savedHist){
+    try { captureHistory = JSON.parse(savedHist); } catch(e){ captureHistory=[]; }
+    renderHistory();
+    // Restore last snapshot to snap frame
+    if(captureHistory.length > 0){
+      var last = captureHistory[0];
+      currentSnapSrc = last.src;
+      var frame = document.getElementById('snapFrame');
+      document.getElementById('snapOverlay').style.display = 'none';
+      var si = document.createElement('img');
+      si.className = 'snap-img';
+      si.src = last.src;
+      si.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;';
+      frame.appendChild(si);
+      document.getElementById('snapTime').textContent = 'Last capture: '+last.time;
+      document.getElementById('btnDownload').style.display = 'inline-flex';
+    }
+  }
+
+  document.getElementById('espIP').addEventListener('keydown', function(e){ if(e.key==='Enter') connect(); });
+  document.getElementById('cameraIP').addEventListener('keydown', function(e){ if(e.key==='Enter') saveCameraIP(); });
+})();
+</script>
+</body>
+</html>
