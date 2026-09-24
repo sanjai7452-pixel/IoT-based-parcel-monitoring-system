@@ -16,6 +16,29 @@ This project turns an ESP32 into a compact smart locker controller with:
 
 The firmware exposes a dashboard over HTTP and can be accessed on the ESP32's local IP in a browser.
 
+## System Architecture
+
+```mermaid
+flowchart LR
+    A[User / Browser] -->|HTTP| B[ESP32 Web Server]
+    B -->|Control Commands| C[Relay + Lock Mechanism]
+    B -->|Status Updates| A
+
+    D[Ultrasonic Sensor] -->|Distance / Parcel Detection| B
+    E[IP Camera] -->|Live Feed / JPEG Snapshot| B
+    B -->|Wi-Fi| F[Local Network]
+    F --> A
+
+    G[Power Supply] --> B
+    G --> C
+    G --> D
+    G --> E
+
+    B -->|Activity Log| H[Serial Monitor / Debug Output]
+```
+
+This architecture shows the ESP32 as the central controller. It reads parcel presence from the ultrasonic sensor, controls the lock via a relay, communicates with the IP camera, and serves a real-time dashboard to the user over Wi-Fi.
+
 ## Features
 
 - Smart door/locker control with lock and unlock actions
